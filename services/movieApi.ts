@@ -1,4 +1,5 @@
 import { Movie, TVShow, Genre } from '../types';
+import { databaseService, SearchFilters } from './database';
 
 // Dados mockados para filmes populares
 const mockMovies: Movie[] = [
@@ -182,63 +183,245 @@ class MovieApiService {
   // Simular delay de rede
   private delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // Initialize database and populate with initial data
+  async initializeApp(): Promise<void> {
+    try {
+      await databaseService.initializeDatabase();
+      
+      // Check if we already have data
+      const stats = await databaseService.getDatabaseStats();
+      if (stats.moviesCount === 0 && stats.tvShowsCount === 0) {
+        // Populate with initial mock data
+        await databaseService.insertMovies(mockMovies);
+        await databaseService.insertTVShows(mockTVShows);
+        await databaseService.insertGenres(mockGenres);
+        console.log('Database populated with initial data');
+      }
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      throw new Error('Failed to initialize app');
+    }
+  }
+
   async getPopularMovies(page: number = 1): Promise<{ results: Movie[]; total_pages: number }> {
-    await this.delay(800);
-    return {
-      results: mockMovies,
-      total_pages: 1,
-    };
+    await this.delay(400);
+    try {
+      // First try to get from database
+      const dbMovies = await databaseService.getPopularMovies(20);
+      if (dbMovies.length > 0) {
+        return {
+          results: dbMovies,
+          total_pages: 1,
+        };
+      }
+      
+      // Fallback to mock data
+      return {
+        results: mockMovies,
+        total_pages: 1,
+      };
+    } catch (error) {
+      console.error('Error getting popular movies:', error);
+      // Fallback to mock data
+      return {
+        results: mockMovies,
+        total_pages: 1,
+      };
+    }
   }
 
   async getPopularTVShows(page: number = 1): Promise<{ results: TVShow[]; total_pages: number }> {
-    await this.delay(800);
-    return {
-      results: mockTVShows,
-      total_pages: 1,
-    };
+    await this.delay(400);
+    try {
+      // First try to get from database
+      const dbTVShows = await databaseService.getPopularTVShows(20);
+      if (dbTVShows.length > 0) {
+        return {
+          results: dbTVShows,
+          total_pages: 1,
+        };
+      }
+      
+      // Fallback to mock data
+      return {
+        results: mockTVShows,
+        total_pages: 1,
+      };
+    } catch (error) {
+      console.error('Error getting popular TV shows:', error);
+      // Fallback to mock data
+      return {
+        results: mockTVShows,
+        total_pages: 1,
+      };
+    }
   }
 
   async getMovieDetails(id: number): Promise<Movie> {
-    await this.delay(600);
-    const movie = mockMovies.find(m => m.id === id);
-    if (!movie) throw new Error('Movie not found');
-    return movie;
+    await this.delay(300);
+    try {
+      // First try to get from database
+      const dbMovie = await databaseService.getMovie(id);
+      if (dbMovie) {
+        return dbMovie;
+      }
+      
+      // Fallback to mock data
+      const movie = mockMovies.find(m => m.id === id);
+      if (!movie) throw new Error('Movie not found');
+      return movie;
+    } catch (error) {
+      console.error('Error getting movie details:', error);
+      const movie = mockMovies.find(m => m.id === id);
+      if (!movie) throw new Error('Movie not found');
+      return movie;
+    }
   }
 
   async getTVShowDetails(id: number): Promise<TVShow> {
-    await this.delay(600);
-    const tvShow = mockTVShows.find(t => t.id === id);
-    if (!tvShow) throw new Error('TV Show not found');
-    return tvShow;
+    await this.delay(300);
+    try {
+      // First try to get from database
+      const dbTVShow = await databaseService.getTVShow(id);
+      if (dbTVShow) {
+        return dbTVShow;
+      }
+      
+      // Fallback to mock data
+      const tvShow = mockTVShows.find(t => t.id === id);
+      if (!tvShow) throw new Error('TV Show not found');
+      return tvShow;
+    } catch (error) {
+      console.error('Error getting TV show details:', error);
+      const tvShow = mockTVShows.find(t => t.id === id);
+      if (!tvShow) throw new Error('TV Show not found');
+      return tvShow;
+    }
   }
 
   async getGenres(): Promise<{ genres: Genre[] }> {
-    await this.delay(400);
-    return { genres: mockGenres };
+    await this.delay(200);
+    try {
+      // First try to get from database
+      const dbGenres = await databaseService.getGenres();
+      if (dbGenres.length > 0) {
+        return { genres: dbGenres };
+      }
+      
+      // Fallback to mock data
+      return { genres: mockGenres };
+    } catch (error) {
+      console.error('Error getting genres:', error);
+      // Fallback to mock data
+      return { genres: mockGenres };
+    }
   }
 
   async searchMovies(query: string, page: number = 1): Promise<{ results: Movie[]; total_pages: number }> {
-    await this.delay(700);
-    const filteredMovies = mockMovies.filter(movie =>
-      movie.title.toLowerCase().includes(query.toLowerCase()) ||
-      movie.overview.toLowerCase().includes(query.toLowerCase())
-    );
-    return {
-      results: filteredMovies,
-      total_pages: 1,
-    };
+    await this.delay(400);
+    try {
+      // Use database search
+      const searchResults = await databaseService.searchContent({
+        query,
+        type: 'movie'
+      });
+      
+      return {
+        results: searchResults.movies,
+        total_pages: 1,
+      };
+    } catch (error) {
+      console.error('Error searching movies:', error);
+      // Fallback to mock search
+      const filteredMovies = mockMovies.filter(movie =>
+        movie.title.toLowerCase().includes(query.toLowerCase()) ||
+        movie.overview.toLowerCase().includes(query.toLowerCase())
+      );
+      return {
+        results: filteredMovies,
+        total_pages: 1,
+      };
+    }
   }
 
   async searchTVShows(query: string, page: number = 1): Promise<{ results: TVShow[]; total_pages: number }> {
-    await this.delay(700);
-    const filteredTVShows = mockTVShows.filter(tvShow =>
-      tvShow.name.toLowerCase().includes(query.toLowerCase()) ||
-      tvShow.overview.toLowerCase().includes(query.toLowerCase())
-    );
-    return {
-      results: filteredTVShows,
-      total_pages: 1,
-    };
+    await this.delay(400);
+    try {
+      // Use database search
+      const searchResults = await databaseService.searchContent({
+        query,
+        type: 'tv'
+      });
+      
+      return {
+        results: searchResults.tvShows,
+        total_pages: 1,
+      };
+    } catch (error) {
+      console.error('Error searching TV shows:', error);
+      // Fallback to mock search
+      const filteredTVShows = mockTVShows.filter(tvShow =>
+        tvShow.name.toLowerCase().includes(query.toLowerCase()) ||
+        tvShow.overview.toLowerCase().includes(query.toLowerCase())
+      );
+      return {
+        results: filteredTVShows,
+        total_pages: 1,
+      };
+    }
+  }
+
+  // Advanced search with filters
+  async searchContent(filters: SearchFilters): Promise<{
+    movies: Movie[];
+    tvShows: TVShow[];
+    total: number;
+  }> {
+    await this.delay(400);
+    try {
+      return await databaseService.searchContent(filters);
+    } catch (error) {
+      console.error('Error searching content:', error);
+      throw new Error('Failed to search content');
+    }
+  }
+
+  // Favorites management
+  async toggleMovieFavorite(movieId: number): Promise<boolean> {
+    try {
+      return await databaseService.toggleMovieFavorite(movieId);
+    } catch (error) {
+      console.error('Error toggling movie favorite:', error);
+      throw new Error('Failed to toggle movie favorite');
+    }
+  }
+
+  async getFavoriteMovies(): Promise<Movie[]> {
+    try {
+      return await databaseService.getFavoriteMovies();
+    } catch (error) {
+      console.error('Error getting favorite movies:', error);
+      return [];
+    }
+  }
+
+  // Search history
+  async getSearchHistory(): Promise<string[]> {
+    try {
+      return await databaseService.getSearchHistory();
+    } catch (error) {
+      console.error('Error getting search history:', error);
+      return [];
+    }
+  }
+
+  async clearSearchHistory(): Promise<void> {
+    try {
+      await databaseService.clearSearchHistory();
+    } catch (error) {
+      console.error('Error clearing search history:', error);
+      throw new Error('Failed to clear search history');
+    }
   }
 
   getImageUrl(path: string, size: 'w200' | 'w300' | 'w500' | 'w780' | 'original' = 'w500'): string {

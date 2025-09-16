@@ -8,6 +8,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { CartProvider } from '../contexts/CartContext';
 import { FavoritesProvider } from '../contexts/FavoritesContext';
 import { HistoryProvider } from '../contexts/HistoryContext';
+
 import { RentalsProvider } from '../contexts/RentalsContext';
 
 export const unstable_settings = {
@@ -29,6 +30,7 @@ export default function RootLayout() {
                   <Stack.Screen name="register" options={{ headerShown: false }} />
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="movie-details" options={{ headerShown: false }} />
+                  <Stack.Screen name="data-viewer" options={{ headerShown: false }} />
                   <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
                 </Stack>
                 <StatusBar style="auto" />

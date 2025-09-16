@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { movieApi } from '../services/movieApi';
+import { databaseService } from '../services/database';
 
 interface User {
   id: string;
@@ -23,8 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
+    initializeApp();
   }, []);
+
+  const initializeApp = async () => {
+    try {
+      // Initialize database first
+      await movieApi.initializeApp();
+      // Then load user
+      await loadUser();
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      setIsLoading(false);
+    }
+  };
 
   const loadUser = async () => {
     try {
@@ -43,19 +57,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Try to find user in database
+      const dbUser = await databaseService.getUserByEmail(email);
       
-      // For demo purposes, accept any email/password combination
-      const newUser: User = {
-        id: '1',
-        name: email.split('@')[0],
-        email,
-      };
-      
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
-      return true;
+      if (dbUser && dbUser.password === password) {
+        // User found and password matches
+        const userToSave = {
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+        };
+        
+        await AsyncStorage.setItem('user', JSON.stringify(userToSave));
+        setUser(userToSave);
+        return true;
+      } else {
+        // For demo purposes, accept any email/password combination if user doesn't exist
+        const newUser: User = {
+          id: Date.now().toString(),
+          name: email.split('@')[0],
+          email,
+        };
+        
+        // Save to database
+        await databaseService.createUser(newUser.id, newUser.name, newUser.email, password);
+        
+        // Save to AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(newUser));
+        setUser(newUser);
+        return true;
+      }
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -68,8 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check if user already exists
+      const existingUser = await databaseService.getUserByEmail(email);
+      if (existingUser) {
+        console.error('User already exists with this email');
+        return false;
+      }
       
       const newUser: User = {
         id: Date.now().toString(),
@@ -77,6 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
       };
       
+      // Save to database
+      await databaseService.createUser(newUser.id, newUser.name, newUser.email, password);
+      
+      // Save to AsyncStorage
       await AsyncStorage.setItem('user', JSON.stringify(newUser));
       setUser(newUser);
       return true;

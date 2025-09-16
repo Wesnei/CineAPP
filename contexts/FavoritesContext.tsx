@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Movie, TVShow } from '../types';
 import { useAuth } from './AuthContext';
+import { movieApi } from '../services/movieApi';
 
 interface FavoritesContextType {
   favorites: (Movie | TVShow)[];
@@ -29,55 +29,57 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     }
   }, [user]);
 
-  const getFavoritesKey = () => {
-    return user ? `favorites_${user.id}` : 'favorites';
-  };
-
   const loadFavorites = async () => {
     try {
-      const favoritesKey = getFavoritesKey();
-      const storedFavorites = await AsyncStorage.getItem(favoritesKey);
-      if (storedFavorites) {
-        setFavorites(JSON.parse(storedFavorites));
-      } else {
-        setFavorites([]);
-      }
+      const favoriteMovies = await movieApi.getFavoriteMovies();
+      setFavorites(favoriteMovies);
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error);
+      setFavorites([]);
     }
   };
 
-  const saveFavorites = async (newFavorites: (Movie | TVShow)[]) => {
+  const addToFavorites = async (item: Movie | TVShow) => {
     try {
-      const favoritesKey = getFavoritesKey();
-      await AsyncStorage.setItem(favoritesKey, JSON.stringify(newFavorites));
+      const isAlreadyFavorite = favorites.some(fav => fav.id === item.id);
+      if (!isAlreadyFavorite) {
+        // For movies, use the database toggle
+        if ('title' in item) {
+          await movieApi.toggleMovieFavorite(item.id);
+          await loadFavorites(); // Reload to get updated data
+        }
+        // Note: TV shows favorite functionality would need to be implemented in database
+      }
     } catch (error) {
-      console.error('Erro ao salvar favoritos:', error);
+      console.error('Erro ao adicionar favorito:', error);
     }
   };
 
-  const addToFavorites = (item: Movie | TVShow) => {
-    const isAlreadyFavorite = favorites.some(fav => fav.id === item.id);
-    if (!isAlreadyFavorite) {
-      const newFavorites = [...favorites, item];
-      setFavorites(newFavorites);
-      saveFavorites(newFavorites);
+  const removeFromFavorites = async (id: number) => {
+    try {
+      // For movies, use the database toggle
+      const movie = favorites.find(fav => fav.id === id && 'title' in fav);
+      if (movie) {
+        await movieApi.toggleMovieFavorite(id);
+        await loadFavorites(); // Reload to get updated data
+      }
+      // Note: TV shows favorite functionality would need to be implemented in database
+    } catch (error) {
+      console.error('Erro ao remover favorito:', error);
     }
-  };
-
-  const removeFromFavorites = (id: number) => {
-    const newFavorites = favorites.filter(fav => fav.id !== id);
-    setFavorites(newFavorites);
-    saveFavorites(newFavorites);
   };
 
   const isFavorite = (id: number) => {
     return favorites.some(fav => fav.id === id);
   };
 
-  const clearFavorites = () => {
-    setFavorites([]);
-    saveFavorites([]);
+  const clearFavorites = async () => {
+    try {
+      // This would need implementation in database service
+      setFavorites([]);
+    } catch (error) {
+      console.error('Erro ao limpar favoritos:', error);
+    }
   };
 
   return (

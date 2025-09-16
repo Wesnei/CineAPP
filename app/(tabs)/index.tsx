@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Toast } from '../../components/ui/Toast';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/design';
 import { useFavorites } from '../../contexts/FavoritesContext';
+
 import { useHistory } from '../../contexts/HistoryContext';
 import { useAuth } from '../../contexts/AuthContext';
 

@@ -10,21 +10,22 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Typography, Spacing, BorderRadius } from '../../constants/design';
+import { Colors, Typography, Spacing } from '../../constants/design';
 import { useFavorites } from '../../contexts/FavoritesContext';
-import { useHistory } from '../../contexts/HistoryContext';
 import { useRentals } from '../../contexts/RentalsContext';
+import { useHistory } from '../../contexts/HistoryContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function ProfileScreen() {
-  const { favorites, clearFavorites } = useFavorites();
-  const { history, clearHistory, getWatchedTime, getMoviesWatched, getSeriesWatched } = useHistory();
-  const { getActiveRentals, getExpiredRentals } = useRentals();
-  const { user, logout } = useAuth();
+  const { favorites } = useFavorites();
+  const { getActiveRentals } = useRentals();
+  const { getWatchedTime, getMoviesWatched, getSeriesWatched } = useHistory();
+  const { logout, user } = useAuth();
   
   const activeRentals = getActiveRentals();
-  const expiredRentals = getExpiredRentals();
-  const totalRentals = activeRentals.length + expiredRentals.length;
+  const watchedTime = getWatchedTime();
+  const moviesWatched = getMoviesWatched();
+  const seriesWatched = getSeriesWatched();
 
   const handleLogout = () => {
     Alert.alert(
@@ -44,54 +45,33 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleClearFavorites = () => {
-    Alert.alert(
-      'Limpar Favoritos',
-      'Deseja remover todos os favoritos?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Limpar', style: 'destructive', onPress: clearFavorites },
-      ]
-    );
-  };
-
-  const handleClearHistory = () => {
-    Alert.alert(
-      'Limpar Histórico',
-      'Deseja remover todo o histórico?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Limpar', style: 'destructive', onPress: clearHistory },
-      ]
-    );
-  };
-
   const menuItems = [
     {
       icon: 'heart-outline',
       title: 'Meus Favoritos',
-      subtitle: `${favorites.length} ${favorites.length === 1 ? 'filme/série favorito' : 'filmes/séries favoritos'}`,
+      subtitle: `${favorites.length} ${favorites.length === 1 ? 'favorito' : 'favoritos'}`,
       color: Colors.cinema.red,
       onPress: () => router.push('/(tabs)/favorites'),
     },
     {
-      icon: 'time-outline',
-      title: 'Histórico de Visualização',
-      subtitle: `${history.length} ${history.length === 1 ? 'item assistido' : 'itens assistidos'}`,
-      color: Colors.cinema.gold,
-      onPress: () => router.push('/watched' as any),
-    },
-    {
       icon: 'cart-outline',
       title: 'Meus Aluguéis',
-      subtitle: `${activeRentals.length} ${activeRentals.length === 1 ? 'ativo' : 'ativos'}, ${totalRentals} total`,
+      subtitle: `${activeRentals.length} ${activeRentals.length === 1 ? 'ativo' : 'ativos'}`,
       color: Colors.cinema.blue,
       onPress: () => router.push('/rentals' as any),
     },
     {
+      icon: 'time-outline',
+      title: 'Histórico Assistido',
+      subtitle: `${moviesWatched + seriesWatched} itens assistidos`,
+      color: Colors.cinema.gold,
+      onPress: () => router.push('/watched' as any),
+    },
+
+    {
       icon: 'log-out-outline',
-      title: 'Sair da Conta',
-      subtitle: 'Desconectar do CineApp',
+      title: 'Sair',
+      subtitle: 'Desconectar do app',
       color: Colors.cinema.red,
       onPress: handleLogout,
     },
@@ -107,8 +87,30 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={40} color={Colors.cinema.gold} />
           </View>
-          <Text style={styles.userName}>{user?.name || 'Cinéfilo'} ! </Text>
-          <Text style={styles.userEmail}>🎬 Amante de Cinema 🍿</Text>
+          <Text style={styles.userName}>{user?.name || 'Usuário'}!</Text>
+          <Text style={styles.userEmail}>{user?.email || '🎬 Amante de Cinema 🍿'}</Text>
+        </View>
+
+        {/* Stats Section */}
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsTitle}>Sua Atividade</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="time" size={20} color={Colors.cinema.gold} />
+              <Text style={styles.statNumber}>{Math.floor(watchedTime / 60)}</Text>
+              <Text style={styles.statLabel}>Horas</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="film" size={20} color={Colors.cinema.red} />
+              <Text style={styles.statNumber}>{moviesWatched}</Text>
+              <Text style={styles.statLabel}>Filmes</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="tv" size={20} color={Colors.cinema.blue} />
+              <Text style={styles.statNumber}>{seriesWatched}</Text>
+              <Text style={styles.statLabel}>Séries</Text>
+            </View>
+          </View>
         </View>
       </LinearGradient>
 
@@ -130,11 +132,11 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={Colors.neutral[400]} />
           </TouchableOpacity>
         ))}
-
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>CineApp v1.0.0</Text>
+        <Text style={styles.footerSubtext}>Dados integrados com SQLite</Text>
       </View>
     </ScrollView>
   );
@@ -154,6 +156,7 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     alignItems: 'center',
+    marginBottom: 24,
   },
   avatarContainer: {
     width: 80,
@@ -175,9 +178,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     opacity: 0.9,
   },
+  statsContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    padding: 20,
+  },
+  statsTitle: {
+    ...Typography.h4,
+    color: Colors.cinema.gold,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    ...Typography.h3,
+    color: '#fff',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    ...Typography.caption,
+    color: Colors.neutral[300],
+  },
   menuContainer: {
     padding: 16,
-    paddingBottom: 120, 
+    paddingBottom: 120,
   },
   menuItem: {
     flexDirection: 'row',
@@ -199,7 +230,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.neutral[100],
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -232,4 +263,3 @@ const styles = StyleSheet.create({
     color: Colors.neutral[500],
   },
 });
-

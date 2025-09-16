@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { useHistory } from '../../contexts/HistoryContext';
+
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/design';
 import { Movie, TVShow } from '../../types';
 

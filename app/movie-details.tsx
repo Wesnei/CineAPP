@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { Colors, Typography, Spacing, BorderRadius } from '../constants/design';
 import { useFavorites } from '../contexts/FavoritesContext';
+
 import { useHistory } from '../contexts/HistoryContext';
 import { useCart } from '../contexts/CartContext';
 import { Movie, TVShow } from '../types';

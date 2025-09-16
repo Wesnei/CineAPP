@@ -118,6 +118,19 @@ export default function WatchedScreen() {
           )}
         </View>
 
+        {/* Stats Summary */}
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsTitle}>📊 Resumo da Atividade</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsText}>
+              🕐 {Math.floor(getWatchedTime() / 60)} horas assistidas
+            </Text>
+            <Text style={styles.statsText}>
+              🎬 {getMoviesWatched()} filmes • 📺 {getSeriesWatched()} séries
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[styles.filterButton, filter === 'all' && styles.activeFilter]}
